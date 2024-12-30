@@ -44,17 +44,17 @@ longchop [options]
 By default, Longchop displays the following file types:
 
 ```bash
-- '*.Dockerfile'
-- '*.tsx'
-- '*.ts'
-- '*.jsx'
-- '*.js'
-- '*.json'
-- '*.html'
-- '*.css'
-- '*.scss'
-- '*.yaml'
-- '*.yml'
+- *.Dockerfile
+- *.tsx
+- *.ts
+- *.jsx
+- *.js
+- *.json
+- *.html
+- *.css
+- *.scss
+- *.yaml
+- *.yml
 ```
 
 You can include other file types or ignore some using the `--include` or `--ignore` options if needed.
