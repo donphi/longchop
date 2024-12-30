@@ -86,58 +86,53 @@ function display_file_content() {
 # 1. Print directory structure
 echo "Directory Structure:"
 echo "==================="
-tree -I 'node_modules|.git|dist|build|.next|coverage' --dirsfirst
+current_dir=$(basename "$PWD")
+echo $current_dir
+tree -I 'node_modules|.git|dist|build|.next|coverage' --dirsfirst | tail -n +2
 echo
-
-# 2. Default file types to show
-#    Put them in parentheses with -o (logical OR).
-#    For special Dockerfile naming, we separate it out a bit.
-default_includes='( -name "*.Dockerfile" -o \
-    -name "*.tsx" -o \
-    -name "*.ts" -o \
-    -name "*.jsx" -o \
-    -name "*.js" -o \
-    -name "*.json" -o \
-    -name "*.html" -o \
-    -name "*.css" -o \
-    -name "*.scss" -o \
-    -name "*.yaml" -o \
-    -name "*.yml" )'
-
-# 3. If --include parameters were provided, add them to the OR list.
-#    For example: if user said "--include .svg", we add: -o -name "*.svg"
-additional_includes=""
-for inc in "${include_types[@]}"; do
-  additional_includes+=" -o -name \"*${inc}\""
-done
-
-# 4. If the user provided `--ignore`, build a set of `-not -iname "*ext"` conditions.
-ignore_expr=""
-for ext in "${ignore_types[@]}"; do
-  ignore_expr+=" -not -iname \"*${ext}\""
-done
 
 echo "Files with Contents:"
 echo "==================="
 
-# 5. Build the final 'find' command using eval so we can expand the strings properly.
-#
-# Putting it all together:
-# find . -type f \( $default_includes $additional_includes \) \
-#     (excluding certain directories) \
-#     $ignore_expr
-#
+# Build the find command
+find_cmd="find . -type f \( "
 
-eval "find . -type f \
-  \\( $default_includes $additional_includes \\) \
-  -not -path '*/node_modules/*' \
-  -not -path '*/.git/*' \
-  -not -path '*/dist/*' \
-  -not -path '*/build/*' \
-  -not -path '*/.next/*' \
-  -not -path '*/coverage/*' \
-  $ignore_expr" | while read -r file; do
-    dirname \"$file\" | sed 's/[^/]*\//│   /g'
-    echo \"├── \$(basename \"$file\")\"
-    display_file_content \"$file\"
+# Add default file types
+find_cmd+="-name '*.Dockerfile' -o "
+find_cmd+="-name '*.tsx' -o "
+find_cmd+="-name '*.ts' -o "
+find_cmd+="-name '*.jsx' -o "
+find_cmd+="-name '*.js' -o "
+find_cmd+="-name '*.json' -o "
+find_cmd+="-name '*.html' -o "
+find_cmd+="-name '*.css' -o "
+find_cmd+="-name '*.scss' -o "
+find_cmd+="-name '*.yaml' -o "
+find_cmd+="-name '*.yml'"
+
+# Close the initial group
+find_cmd+=" \)"
+
+# Add include types if any
+for inc in "${include_types[@]}"; do
+    find_cmd+=" -o -name '*$inc'"
+done
+
+# Add standard exclusions
+find_cmd+=" -not -path '*/node_modules/*'"
+find_cmd+=" -not -path '*/.git/*'"
+find_cmd+=" -not -path '*/dist/*'"
+find_cmd+=" -not -path '*/build/*'"
+find_cmd+=" -not -path '*/.next/*'"
+find_cmd+=" -not -path '*/coverage/*'"
+
+# Add ignore types if any
+for ext in "${ignore_types[@]}"; do
+    find_cmd+=" -not -iname '*$ext'"
+done
+
+eval "$find_cmd" | while read -r file; do
+    dirname "$file" | sed 's/[^/]*\//│   /g'
+    echo "├── $(basename "$file")"
+    display_file_content "$file"
 done
