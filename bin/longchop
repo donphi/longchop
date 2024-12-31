@@ -85,7 +85,31 @@ fi
 ##########################################################
 # Helper Functions
 ##########################################################
-[Previous helper functions remain the same...]
+function create_separator() {
+    echo "───────┼────────────────────────────────────────────────────────────────────────"
+}
+
+function create_separator_bottom() {
+    echo "───────┴────────────────────────────────────────────────────────────────────────"
+}
+
+function display_file_content() {
+    local file=$1
+    echo "       │ File: $file"
+    create_separator
+    # Only show up to $codeline lines
+    line_num=1
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        if (( line_num > codeline )); then
+            break
+        fi
+        printf "%4d   │ %s\n" "$line_num" "$line"
+        ((line_num++))
+    done < "$file"
+    
+    create_separator_bottom
+    echo
+}
 
 ##########################################################
 # Main Logic
