@@ -1,11 +1,12 @@
 #!/bin/bash
-
 ##########################################################
 # Default Values
 ##########################################################
 show_help=false
 codeline=500
-
+level=0
+tree_depth=0
+start_folder="."
 # Arrays for ignoring or including
 ignore_types=()
 include_types=()
@@ -27,6 +28,30 @@ while [[ $# -gt 0 ]]; do
       include_types+=("$2")
       shift 2
       ;;
+    --level)
+      level="$2"
+      if ! [[ "$level" =~ ^[0-9]+$ ]]; then
+        echo "Error: --level must be a numeric value"
+        exit 1
+      fi
+      shift 2
+      ;;
+    --tree)
+      tree_depth="$2"
+      if ! [[ "$tree_depth" =~ ^[0-9]+$ ]]; then
+        echo "Error: --tree must be a numeric value"
+        exit 1
+      fi
+      shift 2
+      ;;
+    --folder)
+      start_folder="$2"
+      if [ ! -d "$start_folder" ]; then
+        echo "Error: Specified folder does not exist"
+        exit 1
+      fi
+      shift 2
+      ;;
     --help|-h)
       show_help=true
       shift
@@ -45,58 +70,53 @@ if [ "$show_help" = true ]; then
   echo "  --codeline X      Show only the first X lines of each file (default 500)."
   echo "  --ignore .ext     Ignore files with the extension '.ext' in the listing."
   echo "  --include .ext    Include additional file types beyond the default set."
+  echo "  --level X         Show file details only X levels deep from root (default 0)."
+  echo "  --tree X          Display tree structure X levels deep (overrides --level for tree display)."
+  echo "  --folder path     Specify starting folder (default: current directory)."
   echo "  --help, -h        Show this help message."
+  echo ""
+  echo "Examples:"
+  echo "  longchop --level 2                 # Show file details 2 levels deep"
+  echo "  longchop --level 2 --tree 4        # Show file details 2 levels deep, but tree structure 4 levels"
+  echo "  longchop --folder /path/to/dir     # Start from specified directory"
   exit 0
 fi
 
 ##########################################################
 # Helper Functions
 ##########################################################
-function create_separator() {
-    echo "───────┼────────────────────────────────────────────────────────────────────────"
-}
-
-function create_separator_bottom() {
-    echo "───────┴────────────────────────────────────────────────────────────────────────"
-}
-
-function display_file_content() {
-    local file=$1
-    echo "       │ File: $file"
-    create_separator
-
-    # Only show up to $codeline lines
-    line_num=1
-    while IFS= read -r line || [[ -n "$line" ]]; do
-        if (( line_num > codeline )); then
-            break
-        fi
-        printf "%4d   │ %s\n" "$line_num" "$line"
-        ((line_num++))
-    done < "$file"
-    
-    create_separator_bottom
-    echo
-}
+[Previous helper functions remain the same...]
 
 ##########################################################
 # Main Logic
 ##########################################################
+# Change to start folder if specified
+cd "$start_folder" || exit 1
 
 # 1. Print directory structure
 echo "Directory Structure:"
 echo "==================="
 current_dir=$(basename "$PWD")
-echo $current_dir
-tree -I 'node_modules|.git|dist|build|.next|coverage' --dirsfirst | tail -n +2
-echo
+echo "$current_dir"
 
+# Use tree_depth if specified, otherwise use level
+display_depth=$level
+if [ "$tree_depth" -gt 0 ]; then
+    display_depth=$tree_depth
+fi
+
+if [ "$display_depth" -gt 0 ]; then
+    tree -L "$display_depth" -I 'node_modules|.git|dist|build|.next|coverage' --dirsfirst | tail -n +2
+else
+    tree -L 1 -I 'node_modules|.git|dist|build|.next|coverage' --dirsfirst | tail -n +2
+fi
+
+echo
 echo "Files with Contents:"
 echo "==================="
 
 # Build the find command
 find_cmd="find . -type f \( "
-
 # Add default file types
 find_cmd+="-name '*.Dockerfile' -o "
 find_cmd+="-name '*.tsx' -o "
@@ -108,7 +128,9 @@ find_cmd+="-name '*.html' -o "
 find_cmd+="-name '*.css' -o "
 find_cmd+="-name '*.scss' -o "
 find_cmd+="-name '*.yaml' -o "
-find_cmd+="-name '*.yml'"
+find_cmd+="-name '*.yml' -o "
+find_cmd+="-name '*.txt' -o "
+find_cmd+="-name '*.sh'"
 
 # Close the initial group
 find_cmd+=" \)"
@@ -130,6 +152,11 @@ find_cmd+=" -not -path '*/coverage/*'"
 for ext in "${ignore_types[@]}"; do
     find_cmd+=" -not -iname '*$ext'"
 done
+
+# Add maxdepth if level is specified
+if [ "$level" -gt 0 ]; then
+    find_cmd+=" -maxdepth $((level + 1))"
+fi
 
 eval "$find_cmd" | while read -r file; do
     dirname "$file" | sed 's/[^/]*\//│   /g'
