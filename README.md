@@ -1,3 +1,9 @@
+<p align="center">
+  <a href="https://github.com/MShawon/github-clone-count-badge">
+    <img src="https://img.shields.io/badge/dynamic/json?color=success&label=Clone&query=count&url=https://gist.githubusercontent.com/donphi/YOUR_GIST_ID/raw/clone.json&logo=github" alt="GitHub Clones" />
+  </a>
+</p>
+
 # 🐕 Longchop
 
 Named after my dog Winter, who loves to stretch out just like this tool stretches and displays your project files! Perfect for keeping track of large projects and providing AI models with full context of your coding questions and file structure.
