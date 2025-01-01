@@ -87,7 +87,7 @@ longchop --codeline 100
 **Ignore specific file types:**
 
 ```bash
-longchop --ignore .map
+longchop --ignore .js
 ```
 
 **Include additional file types:**
