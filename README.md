@@ -10,9 +10,11 @@ Named after my dog Winter, who loves to stretch out just like this tool stretche
 
 ## 🌟 What is Longchop?
 
-Longchop is a friendly CLI tool that helps you visualize and analyze your project files in two ways:  
+Longchop is a friendly CLI tool that helps you visualize and analyze your project files in multiple ways:  
 1. **Tree-like Structure**: See the layout of your project directories and files clearly.  
 2. **File Contents Line-by-Line**: Dive into the individual file contents, displaying specified lines for quick insights.  
+3. **Targeted Folder Views**: Specify the exact folder you want to analyze instead of working in the current directory.  
+4. **Level-based Depth Control**: Adjust the level of folder depth you want to display for more focused insights.  
 
 But wait, there’s more! Introducing **Double Chop** – because one chop is never enough. While the first chop displays your project structure and file contents in the terminal, the second chop automatically copies this output to your clipboard. It’s like having a backup Winter, ready to paste the data into your favorite AI platform (ChatGPT, Claude, or others) for instant context-sharing. It’s quick, efficient, and makes you look like a coding wizard!
 
@@ -47,6 +49,9 @@ longchop [options]
 - `--codeline X`      Show first X lines of each file (default: 500)
 - `--ignore .ext`     Skip files with specific extensions
 - `--include .ext`    Include additional file types
+- `--level X`         Show file details only X levels deep from root (default: --level (0): Entire depth)
+- `--tree X`          Display tree structure X levels deep (overrides --level for tree display)
+- `--folder path`     Specify starting folder (default: current directory)
 - `--help, -h`        Show this friendly help message
 
 ## Default File Types
@@ -65,6 +70,8 @@ By default, Longchop displays the following file types:
 - *.scss
 - *.yaml
 - *.yml
+- *.txt
+- *.sh
 ```
 
 You can include other file types or ignore some using the `--include` or `--ignore` options if needed.
@@ -89,12 +96,24 @@ longchop --ignore .map
 longchop --include .py
 ```
 
+**View a specific folder and limit depth:**
+
+```bash
+longchop --folder /path/to/dir --level 2
+```
+
+**Show only the tree structure up to 3 levels deep:**
+
+```bash
+longchop --tree 3
+```
+
 ## 🎨 Real-World Example
 
 When working on a coding project and needing to debug or provide AI tools (like ChatGPT or Claude) with the complete structure and content of your project, Longchop helps create a clear and concise view. Here’s how you can use it:
 
 ```bash
-longchop --codeline 50 --include .py --include .html
+longchop --codeline 50 --include .py --include .html --folder /project/src --level 2
 ```
 
 ### Example Output:
@@ -145,8 +164,10 @@ Thanks to **Double Chop**, this output is also automatically copied to your clip
 
 ## 🔹 Version History
 
-**Current Version: v1.1.3**
+**Current Version: v1.2.0**
 
+- Added support for specifying target folders
+- Introduced `--level` and `--tree` for depth control
 - Improved file type detection
 - Added better support for various file extensions
 - Enhanced directory structure display
