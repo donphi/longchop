@@ -6,11 +6,15 @@
 
 # 🐕 Longchop
 
-Named after my dog Winter, who loves to stretch out just like this tool stretches and displays your project files! Perfect for keeping track of large projects and providing AI models with full context of your coding questions and file structure.
+Named after my dog Winter, who loves to stretch out just like this tool stretches and displays your project files! Perfect for keeping track of large projects and providing AI models with full context of your coding questions, file structure, and detailed file contents.
 
 ## 🌟 What is Longchop?
 
-Longchop is a friendly CLI tool that helps you visualize and analyze your project files in a tree-like structure. Just like Winter stretches out to show her full length, Longchop stretches out your project structure to help you see everything clearly!
+Longchop is a friendly CLI tool that helps you visualize and analyze your project files in two ways:  
+1. **Tree-like Structure**: See the layout of your project directories and files clearly.  
+2. **File Contents Line-by-Line**: Dive into the individual file contents, displaying specified lines for quick insights.  
+
+But wait, there’s more! Introducing **Double Chop** – because one chop is never enough. While the first chop displays your project structure and file contents in the terminal, the second chop automatically copies this output to your clipboard. It’s like having a backup Winter, ready to paste the data into your favorite AI platform (ChatGPT, Claude, or others) for instant context-sharing. It’s quick, efficient, and makes you look like a coding wizard!
 
 ## 🌐 Installation
 
@@ -137,13 +141,16 @@ myproject
 
 By copying this output into your AI conversation, you provide the full context of your project’s structure and the relevant code, making it easier for AI to assist you.
 
+Thanks to **Double Chop**, this output is also automatically copied to your clipboard. So you can paste it with one quick `Ctrl+V` and get back to coding (or coffee).
+
 ## 🔹 Version History
 
-**Current Version: v1.0.1**
+**Current Version: v1.1.3**
 
 - Improved file type detection
 - Added better support for various file extensions
 - Enhanced directory structure display
+- Added Double Chop for automatic clipboard copying
 
 ## 🐾 Why "Longchop"?
 
