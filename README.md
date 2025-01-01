@@ -164,7 +164,7 @@ Thanks to **Double Chop**, this output is also automatically copied to your clip
 
 ## 🔹 Version History
 
-**Current Version: v1.2.0**
+**Current Version: v1.1.3**
 
 - Added support for specifying target folders
 - Introduced `--level` and `--tree` for depth control
