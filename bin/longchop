@@ -100,97 +100,97 @@ function copy_to_clipboard() {
 
 function display_file_content() {
     local file=$1
-    {
-        echo "       │ File: $file"
-        create_separator
-        # Only show up to $codeline lines
-        line_num=1
-        while IFS= read -r line || [[ -n "$line" ]]; do
-            if (( line_num > codeline )); then
-                break
-            fi
-            printf "%4d   │ %s\n" "$line_num" "$line"
-            ((line_num++))
-        done < "$file"
-        
-        create_separator_bottom
-        echo
-    } | tee >(copy_to_clipboard)
+    echo "       │ File: $file"
+    create_separator
+    # Only show up to $codeline lines
+    line_num=1
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        if (( line_num > codeline )); then
+            break
+        fi
+        printf "%4d   │ %s\n" "$line_num" "$line"
+        ((line_num++))
+    done < "$file"
+    
+    create_separator_bottom
+    echo
 }
 
 ##########################################################
 # Main Logic
 ##########################################################
-# Change to start folder if specified
-cd "$start_folder" || exit 1
+{
+    # Change to start folder if specified
+    cd "$start_folder" || exit 1
 
-# 1. Print directory structure
-echo "Directory Structure:"
-echo "==================="
-current_dir=$(basename "$PWD")
-echo "$current_dir"
+    # 1. Print directory structure
+    echo "Directory Structure:"
+    echo "==================="
+    current_dir=$(basename "$PWD")
+    echo "$current_dir"
 
-# Use tree_depth if specified, otherwise use level
-display_depth=$level
-if [ "$tree_depth" -gt 0 ]; then
-    display_depth=$tree_depth
-fi
+    # Use tree_depth if specified, otherwise use level
+    display_depth=$level
+    if [ "$tree_depth" -gt 0 ]; then
+        display_depth=$tree_depth
+    fi
 
-if [ "$display_depth" -gt 0 ]; then
-    tree -L "$display_depth" -I 'node_modules|.git|dist|build|.next|coverage' --dirsfirst | tail -n +2
-else
-    tree -L 1 -I 'node_modules|.git|dist|build|.next|coverage' --dirsfirst | tail -n +2
-fi
+    if [ "$display_depth" -gt 0 ]; then
+        tree -L "$display_depth" -I 'node_modules|.git|dist|build|.next|coverage' --dirsfirst | tail -n +2
+    else
+        tree -L 1 -I 'node_modules|.git|dist|build|.next|coverage' --dirsfirst | tail -n +2
+    fi
 
-echo
-echo "Files with Contents:"
-echo "==================="
+    echo
+    echo "Files with Contents:"
+    echo "==================="
 
-# Build the find command
-find_cmd="find . -type f \( "
-# Add default file types
-find_cmd+="-name '*.Dockerfile' -o "
-find_cmd+="-name '*.tsx' -o "
-find_cmd+="-name '*.ts' -o "
-find_cmd+="-name '*.jsx' -o "
-find_cmd+="-name '*.js' -o "
-find_cmd+="-name '*.json' -o "
-find_cmd+="-name '*.html' -o "
-find_cmd+="-name '*.css' -o "
-find_cmd+="-name '*.scss' -o "
-find_cmd+="-name '*.yaml' -o "
-find_cmd+="-name '*.yml' -o "
-find_cmd+="-name '*.txt' -o "
-find_cmd+="-name '*.sh'"
+    # Build the find command
+    find_cmd="find . -type f \( "
+    # Add default file types
+    find_cmd+="-name '*.Dockerfile' -o "
+    find_cmd+="-name '*.tsx' -o "
+    find_cmd+="-name '*.ts' -o "
+    find_cmd+="-name '*.jsx' -o "
+    find_cmd+="-name '*.js' -o "
+    find_cmd+="-name '*.json' -o "
+    find_cmd+="-name '*.html' -o "
+    find_cmd+="-name '*.css' -o "
+    find_cmd+="-name '*.scss' -o "
+    find_cmd+="-name '*.yaml' -o "
+    find_cmd+="-name '*.yml' -o "
+    find_cmd+="-name '*.txt' -o "
+    find_cmd+="-name '*.sh'"
 
-# Close the initial group
-find_cmd+=" \)"
+    # Close the initial group
+    find_cmd+=" \)"
 
-# Add include types if any
-for inc in "${include_types[@]}"; do
-    find_cmd+=" -o -name '*$inc'"
-done
+    # Add include types if any
+    for inc in "${include_types[@]}"; do
+        find_cmd+=" -o -name '*$inc'"
+    done
 
-# Add standard exclusions
-find_cmd+=" -not -path '*/node_modules/*'"
-find_cmd+=" -not -path '*/.git/*'"
-find_cmd+=" -not -path '*/dist/*'"
-find_cmd+=" -not -path '*/build/*'"
-find_cmd+=" -not -path '*/.next/*'"
-find_cmd+=" -not -path '*/coverage/*'"
+    # Add standard exclusions
+    find_cmd+=" -not -path '*/node_modules/*'"
+    find_cmd+=" -not -path '*/.git/*'"
+    find_cmd+=" -not -path '*/dist/*'"
+    find_cmd+=" -not -path '*/build/*'"
+    find_cmd+=" -not -path '*/.next/*'"
+    find_cmd+=" -not -path '*/coverage/*'"
 
-# Add ignore types if any
-for ext in "${ignore_types[@]}"; do
-    find_cmd+=" -not -iname '*$ext'"
-done
+    # Add ignore types if any
+    for ext in "${ignore_types[@]}"; do
+        find_cmd+=" -not -iname '*$ext'"
+    done
 
-# Add maxdepth if level is specified
-if [ "$level" -gt 0 ]; then
-    find_cmd+=" -maxdepth $((level + 1))"
-fi
+    # Add maxdepth if level is specified
+    if [ "$level" -gt 0 ]; then
+        find_cmd+=" -maxdepth $((level + 1))"
+    fi
 
-eval "$find_cmd" | while read -r file; do
-    dirname "$file" | sed 's/[^/]*\//│   /g'
-    echo "├── $(basename "$file")"
-    display_file_content "$file"
-done
+    eval "$find_cmd" | while read -r file; do
+        dirname "$file" | sed 's/[^/]*\//│   /g'
+        echo "├── $(basename "$file")"
+        display_file_content "$file"
+    done
+} | tee >(copy_to_clipboard)
