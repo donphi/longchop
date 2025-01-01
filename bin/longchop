@@ -93,22 +93,29 @@ function create_separator_bottom() {
     echo "───────┴────────────────────────────────────────────────────────────────────────"
 }
 
+function copy_to_clipboard() {
+    # Try Mac first, then Linux if Mac fails
+    cat - | pbcopy 2>/dev/null || cat - | xclip -selection clipboard 2>/dev/null || true
+}
+
 function display_file_content() {
     local file=$1
-    echo "       │ File: $file"
-    create_separator
-    # Only show up to $codeline lines
-    line_num=1
-    while IFS= read -r line || [[ -n "$line" ]]; do
-        if (( line_num > codeline )); then
-            break
-        fi
-        printf "%4d   │ %s\n" "$line_num" "$line"
-        ((line_num++))
-    done < "$file"
-    
-    create_separator_bottom
-    echo
+    {
+        echo "       │ File: $file"
+        create_separator
+        # Only show up to $codeline lines
+        line_num=1
+        while IFS= read -r line || [[ -n "$line" ]]; do
+            if (( line_num > codeline )); then
+                break
+            fi
+            printf "%4d   │ %s\n" "$line_num" "$line"
+            ((line_num++))
+        done < "$file"
+        
+        create_separator_bottom
+        echo
+    } | tee >(copy_to_clipboard)
 }
 
 ##########################################################
