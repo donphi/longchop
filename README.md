@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://github.com/MShawon/github-clone-count-badge">
-    <img src="https://img.shields.io/badge/dynamic/json?color=success&label=Clone&query=count&url=https://gist.githubusercontent.com/donphi/clone.json/raw/clone.json&logo=github" alt="GitHub Clones" />
+    <img src="https://img.shields.io/badge/dynamic/json?color=success&label=Clone&query=count&url=https://gist.githubusercontent.com/donphi/e469c5903dbd931cc9834c286182adfa/raw/clone.json&logo=github" alt="GitHub Clones" />
   </a>
 </p>
 
