@@ -1,0 +1,11 @@
+name: Clone Counter
+on:
+  schedule:
+    - cron: "0 */24 * * *"
+  workflow_dispatch:
+
+jobs:
+  update-clones:
+    uses: donphi/.github/.github/workflows/reusable-clone-counter.yml@main
+    secrets:
+      SECRET_TOKEN: ${{ secrets.SECRET_TOKEN }}
