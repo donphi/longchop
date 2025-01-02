@@ -138,7 +138,7 @@ function display_file_content() {
     if [ "$display_depth" -gt 0 ]; then
         tree -L "$display_depth" -I 'node_modules|.git|dist|build|.next|coverage' --dirsfirst | tail -n +2
     else
-        tree -L 1 -I 'node_modules|.git|dist|build|.next|coverage' --dirsfirst | tail -n +2
+        tree -I 'node_modules|.git|dist|build|.next|coverage' --dirsfirst | tail -n +2
     fi
 
     echo
