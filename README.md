@@ -10,7 +10,7 @@ Named after my dog Winter, who loves to stretch out just like this tool stretche
 
 ## 🌟 What is Longchop?
 
-Longchop is a friendly CLI tool that helps you visualize and analyze your project files in multiple ways:  
+Longchop is a friendly CLI tool that helps you visualize your project files in multiple ways:  
 1. **Tree-like Structure**: See the layout of your project directories and files clearly.  
 2. **File Contents Line-by-Line**: Dive into the individual file contents, displaying specified lines for quick insights.  
 3. **Targeted Folder Views**: Specify the exact folder you want to analyze instead of working in the current directory.  
