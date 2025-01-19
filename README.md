@@ -46,13 +46,14 @@ longchop [options]
 
 **Options:**
 
-- `--codeline X`      Show first X lines of each file (default: 500)
-- `--ignore .ext`     Skip files with specific extensions
-- `--include .ext`    Include additional file types
-- `--level X`         Show file details only X levels deep from root (default: --level (0): Entire depth)
-- `--tree X`          Display tree structure X levels deep (overrides --level for tree display)
-- `--folder path`     Specify starting folder (default: current directory)
-- `--help, -h`        Show this friendly help message
+- `--codeline X`                Show first X lines of each file (default: 500)
+- `--ignore .ext`               Skip files with specific extensions
+- `--include .ext`              Include additional file types
+- `--exclude file.ext folder`   Exclude specific files or folders
+- `--level X`                   Show file details only X levels deep from root (default: --level (0): Entire depth)
+- `--tree X`                    Display tree structure X levels deep (overrides --level for tree display)
+- `--folder path`               Specify starting folder (default: current directory)
+- `--help, -h`                  Show this friendly help message
 
 ## Default File Types
 
@@ -164,7 +165,7 @@ Thanks to **Double Chop**, this output is also automatically copied to your clip
 
 ## 🔹 Version History
 
-**Current Version: v1.1.3**
+**Current Version: v1.3.0**
 
 - Added support for specifying target folders
 - Introduced `--level` and `--tree` for depth control
@@ -172,6 +173,7 @@ Thanks to **Double Chop**, this output is also automatically copied to your clip
 - Added better support for various file extensions
 - Enhanced directory structure display
 - Added Double Chop for automatic clipboard copying
+- Added support to exclude files or folders
 
 ## 🐾 Why "Longchop"?
 
