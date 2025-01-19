@@ -7,9 +7,10 @@ codeline=500
 level=0
 tree_depth=0
 start_folder="."
-# Arrays for ignoring or including
+# Arrays for ignoring or including or excluding
 ignore_types=()
 include_types=()
+exclude_items=()
 
 ##########################################################
 # Parse Parameters
@@ -52,6 +53,13 @@ while [[ $# -gt 0 ]]; do
       fi
       shift 2
       ;;
+    --exclude)
+      shift
+      while [[ $# -gt 0 && ! $1 =~ ^-- ]]; do
+        exclude_items+=("$1")
+        shift
+      done
+      ;;
     --help|-h)
       show_help=true
       shift
@@ -73,6 +81,7 @@ if [ "$show_help" = true ]; then
   echo "  --level X         Show file details only X levels deep from root (default 0)."
   echo "  --tree X          Display tree structure X levels deep (overrides --level for tree display)."
   echo "  --folder path     Specify starting folder (default: current directory)."
+  echo "  --exclude items   Exclude specific files or folders (space separated)."
   echo "  --help, -h        Show this help message."
   echo ""
   echo "Examples:"
@@ -168,6 +177,19 @@ function display_file_content() {
     # Add include types if any
     for inc in "${include_types[@]}"; do
         find_cmd+=" -o -name '*$inc'"
+    done
+
+    # Add standard exclusions
+    find_cmd+=" -not -path '*/node_modules/*'"
+    find_cmd+=" -not -path '*/.git/*'"
+    find_cmd+=" -not -path '*/dist/*'"
+    find_cmd+=" -not -path '*/build/*'"
+    find_cmd+=" -not -path '*/.next/*'"
+    find_cmd+=" -not -path '*/coverage/*'"
+
+    # Add custom exclusions if any
+    for item in "${exclude_items[@]}"; do
+        find_cmd+=" -not -name '$item' -not -path '*/$item/*'"
     done
 
     # Add standard exclusions
