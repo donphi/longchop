@@ -24,7 +24,7 @@ while [[ $# -gt 0 ]]; do
     --ignore)
       # Allow multiple extensions in one --ignore parameter
       shift
-      while [[ $# -gt 0 && ! $1 =~ ^-- ]]; do
+      while [[ $# -gt 0 && ! "$1" =~ ^-- ]]; do
         ignore_types+=("$1")
         shift
       done
@@ -32,7 +32,7 @@ while [[ $# -gt 0 ]]; do
     --include)
       # Allow multiple extensions in one --include parameter
       shift
-      while [[ $# -gt 0 && ! $1 =~ ^-- ]]; do
+      while [[ $# -gt 0 && ! "$1" =~ ^-- ]]; do
         include_types+=("$1")
         shift
       done
@@ -64,7 +64,7 @@ while [[ $# -gt 0 ]]; do
     --exclude)
       # Allow specifying multiple items to exclude
       shift
-      while [[ $# -gt 0 && ! $1 =~ ^-- ]]; do
+      while [[ $# -gt 0 && ! "$1" =~ ^-- ]]; do
         exclude_items+=("$1")
         shift
       done
@@ -79,6 +79,11 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
+
+# Debug output - uncomment if needed
+# echo "ignore_types: ${ignore_types[*]}"
+# echo "include_types: ${include_types[*]}"
+# echo "exclude_items: ${exclude_items[*]}"
 
 if [ "$show_help" = true ]; then
   echo "Usage: longchop [options]"
@@ -144,7 +149,15 @@ function copy_to_clipboard() {
 }
 
 function display_file_content() {
-    local file=$1
+    local file="$1"
+    # Check if file exists and is readable
+    if [[ ! -f "$file" || ! -r "$file" ]]; then
+        echo "       │ ERROR: File not found or not readable: $file"
+        create_separator_bottom
+        echo
+        return
+    fi
+    
     echo "       │ File: $file"
     create_separator
     # Only show up to $codeline lines
@@ -207,42 +220,52 @@ function display_file_content() {
     echo "Files with Contents:"
     echo "==================="
 
-    # Build the find command
-    find_cmd="find . -type f \( "
+    # Build the find command with careful attention to quoting
+    find_cmd="find . -type f \\( "
+    
     # Add default file types
-    find_cmd+="-name '*.Dockerfile' -o "
-    find_cmd+="-name '*.tsx' -o "
-    find_cmd+="-name '*.ts' -o "
-    find_cmd+="-name '*.jsx' -o "
-    find_cmd+="-name '*.js' -o "
-    find_cmd+="-name '*.json' -o "
-    find_cmd+="-name '*.html' -o "
-    find_cmd+="-name '*.css' -o "
-    find_cmd+="-name '*.scss' -o "
-    find_cmd+="-name '*.yaml' -o "
-    find_cmd+="-name '*.yml' -o "
-    find_cmd+="-name '*.txt' -o "
-    find_cmd+="-name '*.sh'"
-
+    default_types=(
+        "*.Dockerfile" "*.tsx" "*.ts" "*.jsx" "*.js" 
+        "*.json" "*.html" "*.css" "*.scss" "*.yaml" 
+        "*.yml" "*.txt" "*.sh"
+    )
+    
+    # Join default types with -o
+    for ((i=0; i<${#default_types[@]}; i++)); do
+        find_cmd+="-name '${default_types[i]}'"
+        if ((i < ${#default_types[@]}-1)); then
+            find_cmd+=" -o "
+        fi
+    done
+    
     # Close the initial group
-    find_cmd+=" \)"
+    find_cmd+=" \\)"
 
     # Add include types if any
-    for inc in "${include_types[@]}"; do
-        find_cmd+=" -o -name '*$inc'"
-    done
+    if [ ${#include_types[@]} -gt 0 ]; then
+        find_cmd+=" -o \\( "
+        for ((i=0; i<${#include_types[@]}; i++)); do
+            find_cmd+="-name '*${include_types[i]}'"
+            if ((i < ${#include_types[@]}-1)); then
+                find_cmd+=" -o "
+            fi
+        done
+        find_cmd+=" \\)"
+    fi
 
-    # Add standard exclusions
-    find_cmd+=" -not -path '*/node_modules/*'"
-    find_cmd+=" -not -path '*/.git/*'"
-    find_cmd+=" -not -path '*/dist/*'"
-    find_cmd+=" -not -path '*/build/*'"
-    find_cmd+=" -not -path '*/.next/*'"
-    find_cmd+=" -not -path '*/coverage/*'"
+    # Standard exclusions
+    std_exclusions=(
+        "*/node_modules/*" "*/.git/*" "*/dist/*"
+        "*/build/*" "*/.next/*" "*/coverage/*"
+    )
+    
+    for excl in "${std_exclusions[@]}"; do
+        find_cmd+=" -not -path '$excl'"
+    done
 
     # Add custom exclusions if any
     for item in "${exclude_items[@]}"; do
-        # Handle both filenames and directory paths
+        # Handle both filenames and directory paths - being careful with quoting
         find_cmd+=" -not -name '$item' -not -path '*/$item' -not -path '*/$item/*'"
     done
 
@@ -256,9 +279,29 @@ function display_file_content() {
         find_cmd+=" -maxdepth $((level + 1))"
     fi
 
-    eval "$find_cmd" | while read -r file; do
-        dirname "$file" | sed 's/[^/]*\//│   /g'
-        echo "├── $(basename "$file")"
-        display_file_content "$file"
-    done
+    # Debug - uncomment if needed
+    # echo "Find command: $find_cmd"
+    
+    # Execute the find command and process results
+    file_list=$(eval "$find_cmd" 2>/dev/null)
+    
+    if [ -z "$file_list" ]; then
+        echo "No matching files found."
+    else
+        echo "$file_list" | while IFS= read -r file; do
+            # Skip if file doesn't exist (might have been deleted during processing)
+            [ -f "$file" ] || continue
+            
+            dir_path=$(dirname "$file")
+            if [ "$dir_path" = "." ]; then
+                # File is in current directory
+                echo "├── $(basename "$file")"
+            else
+                # File is in subdirectory
+                echo "$dir_path" | sed 's/\.\///' | sed 's/[^/]*\//│   /g'
+                echo "├── $(basename "$file")"
+            fi
+            display_file_content "$file"
+        done
+    fi
 } | tee >(copy_to_clipboard)
