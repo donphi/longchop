@@ -16,7 +16,7 @@ Longchop is a friendly CLI tool that helps you visualize your project files in m
 3. **Targeted Folder Views**: Specify the exact folder you want to analyze instead of working in the current directory.  
 4. **Level-based Depth Control**: Adjust the level of folder depth you want to display for more focused insights.  
 
-But wait, there’s more! Introducing **Double Chop** – because one chop is never enough. While the first chop displays your project structure and file contents in the terminal, the second chop automatically copies this output to your clipboard. It’s like having a backup Winter, ready to paste the data into your favorite AI platform (ChatGPT, Claude, or others) for instant context-sharing. It’s quick, efficient, and makes you look like a coding wizard!
+But wait, there's more! Introducing **Double Chop** – because one chop is never enough. While the first chop displays your project structure and file contents in the terminal, the second chop automatically copies this output to your clipboard. It's like having a backup Winter, ready to paste the data into your favorite AI platform (ChatGPT, Claude, or others) for instant context-sharing. It's quick, efficient, and makes you look like a coding wizard!
 
 ## 🌐 Installation
 
@@ -47,9 +47,9 @@ longchop [options]
 **Options:**
 
 - `--codeline X`                Show first X lines of each file (default: 500)
-- `--ignore .ext`               Skip files with specific extensions
-- `--include .ext`              Include additional file types
-- `--exclude file.ext folder`   Exclude specific files or folders
+- `--ignore .ext1 .ext2`        Skip files with specific extensions (multiple in one parameter)
+- `--include .ext1 .ext2`       Include additional file types (multiple in one parameter)
+- `--exclude item1 item2`       Exclude specific files or folders (can specify paths like 'folder/subfolder')
 - `--level X`                   Show file details only X levels deep from root (default: --level (0): Entire depth)
 - `--tree X`                    Display tree structure X levels deep (overrides --level for tree display)
 - `--folder path`               Specify starting folder (default: current directory)
@@ -71,6 +71,7 @@ By default, Longchop displays the following file types:
 - *.scss
 - *.yaml
 - *.yml
+
 - *.txt
 - *.sh
 ```
@@ -88,13 +89,13 @@ longchop --codeline 100
 **Ignore specific file types:**
 
 ```bash
-longchop --ignore .js
+longchop --ignore .js .css .map
 ```
 
 **Include additional file types:**
 
 ```bash
-longchop --include .py
+longchop --include .md .conf .env
 ```
 
 **View a specific folder and limit depth:**
@@ -109,12 +110,18 @@ longchop --folder /path/to/dir --level 2
 longchop --tree 3
 ```
 
-## 🎨 Real-World Example
-
-When working on a coding project and needing to debug or provide AI tools (like ChatGPT or Claude) with the complete structure and content of your project, Longchop helps create a clear and concise view. Here’s how you can use it:
+**Exclude multiple directories at once:**
 
 ```bash
-longchop --codeline 50 --include .py --include .html --folder /project/src --level 2
+longchop --exclude tests docs/generated assets
+```
+
+## 🎨 Real-World Example
+
+When working on a coding project and needing to debug or provide AI tools (like ChatGPT or Claude) with the complete structure and content of your project, Longchop helps create a clear and concise view. Here's how you can use it:
+
+```bash
+longchop --codeline 50 --include .py .html --folder /project/src --level 2 --exclude tests
 ```
 
 ### Example Output:
@@ -159,13 +166,23 @@ myproject
 ───────┴────────────────────────────────────────────────────────────────────────
 ```
 
-By copying this output into your AI conversation, you provide the full context of your project’s structure and the relevant code, making it easier for AI to assist you.
+By copying this output into your AI conversation, you provide the full context of your project's structure and the relevant code, making it easier for AI to assist you.
 
 Thanks to **Double Chop**, this output is also automatically copied to your clipboard. So you can paste it with one quick `Ctrl+V` and get back to coding (or coffee).
 
 ## 🔹 Version History
 
-**Current Version: v1.3.0**
+**Current Version: v1.4.0**
+
+- Enhanced parameter handling for multiple arguments in one flag:
+  - `--include .ext1 .ext2 .ext3` now works in a single parameter
+  - `--ignore .ext1 .ext2 .ext3` now works in a single parameter
+  - `--exclude folder1 folder/subfolder folder2` now works with paths
+- Improved tree view to respect all exclusions (both from --exclude and --ignore)
+- Enhanced help documentation with better examples and explanations
+- Fixed path handling for nested directory exclusions
+
+**Previous Version: v1.3.0**
 
 - Added support for specifying target folders
 - Introduced `--level` and `--tree` for depth control
@@ -192,7 +209,3 @@ MIT License - Feel free to use it, modify it, share it!
 Having trouble? Found a bug? Please open an issue on GitHub!
 
 ---
-
-Made with ❤️ by donphi
-
-Inspired by Winter 🐕
