@@ -80,11 +80,6 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# Debug output - uncomment if needed
-# echo "ignore_types: ${ignore_types[*]}"
-# echo "include_types: ${include_types[*]}"
-# echo "exclude_items: ${exclude_items[*]}"
-
 if [ "$show_help" = true ]; then
   echo "Usage: longchop [options]"
   echo ""
@@ -220,72 +215,64 @@ function display_file_content() {
     echo "Files with Contents:"
     echo "==================="
 
-    # Use a more direct approach to find and process files
+    # CRITICAL CHANGE: Build file type patterns (separated by |)
+    file_patterns="*.Dockerfile|*.tsx|*.ts|*.jsx|*.js|*.json|*.html|*.css|*.scss|*.yaml|*.yml|*.txt|*.sh"
     
-    # Helper function to check if a file should be included
-    should_include_file() {
-        local file="$1"
-        local filename=$(basename "$file")
-        local extension="${filename##*.}"
-        
-        # Check if file is in excluded directories
-        for excl in "node_modules" ".git" "dist" "build" ".next" "coverage" "${exclude_items[@]}"; do
-            if [[ "$file" == *"/$excl/"* || "$file" == *"/$excl" || "$file" == "./$excl" ]]; then
-                return 1  # Skip this file
-            fi
-        done
-        
-        # Check if file extension is in ignore list
-        for ig in "${ignore_types[@]}"; do
-            ig="${ig#.}"  # Remove leading dot if present
-            if [[ "$extension" == "$ig" ]]; then
-                return 1  # Skip this file
-            fi
-        done
-        
-        # Check if this is a default file type
-        for type in "Dockerfile" "tsx" "ts" "jsx" "js" "json" "html" "css" "scss" "yaml" "yml" "txt" "sh"; do
-            if [[ "$extension" == "$type" ]]; then
-                return 0  # Include this file
-            fi
-        done
-        
-        # Check if file extension is in include list
-        for inc in "${include_types[@]}"; do
-            inc="${inc#.}"  # Remove leading dot if present
-            if [[ "$extension" == "$inc" ]]; then
-                return 0  # Include this file
-            fi
-        done
-        
-        # Default to not including
-        return 1
-    }
+    # Add include types if any
+    for inc in "${include_types[@]}"; do
+        file_patterns="${file_patterns}|*${inc}"
+    done
     
-    # Find all files recursively from current directory
+    # Build maxdepth parameter if level is specified
+    maxdepth_param=""
     if [ "$level" -gt 0 ]; then
-        find_cmd="find . -type f -maxdepth $((level + 1))"
-    else
-        find_cmd="find . -type f"
+        maxdepth_param="-maxdepth $((level + 1))"
     fi
     
-    # Execute the find command
-    while IFS= read -r file; do
-        # Check if we should include this file
-        if should_include_file "$file"; then
-            if [[ -f "$file" && -r "$file" ]]; then
-                dir_path=$(dirname "$file")
-                if [ "$dir_path" = "." ]; then
-                    # File is in current directory
-                    echo "├── $(basename "$file")"
-                else
-                    # File is in subdirectory
-                    echo "$dir_path" | sed 's/\.\///' | sed 's/[^/]*\//│   /g'
-                    echo "├── $(basename "$file")"
-                fi
-                display_file_content "$file"
-            fi
-        fi
-    done < <(eval "$find_cmd")
+    # Build exclusion pattern for find
+    excl_patterns=""
+    # Standard exclusions
+    excl_patterns="${excl_patterns} -not -path '*/node_modules/*' -not -path '*/.git/*'"
+    excl_patterns="${excl_patterns} -not -path '*/dist/*' -not -path '*/build/*'"
+    excl_patterns="${excl_patterns} -not -path '*/.next/*' -not -path '*/coverage/*'"
     
+    # Add custom exclusions
+    for item in "${exclude_items[@]}"; do
+        excl_patterns="${excl_patterns} -not -path '*/${item}*'"
+    done
+    
+    # Add ignore types
+    for ext in "${ignore_types[@]}"; do
+        excl_patterns="${excl_patterns} -not -name '*${ext}'"
+    done
+    
+    # Execute the find command with -regex
+    find_command="find . ${maxdepth_param} -type f -regex '.*\\(${file_patterns}\\)' ${excl_patterns}"
+    
+    # Debug - uncomment if needed
+    # echo "Find command: $find_command"
+    
+    # Use command substitution to store the results
+    matching_files=$(eval "$find_command")
+    
+    if [ -z "$matching_files" ]; then
+        echo "No matching files found."
+    else
+        echo "$matching_files" | while IFS= read -r file; do
+            # Skip if file doesn't exist
+            [ ! -f "$file" ] && continue
+            
+            # Display file name with directory structure
+            dir_path=$(dirname "$file")
+            if [ "$dir_path" = "." ]; then
+                echo "├── $(basename "$file")"
+            else
+                echo "$dir_path" | sed 's/\.\///' | sed 's/[^/]*\//│   /g'
+                echo "├── $(basename "$file")"
+            fi
+            
+            # Display file content
+            display_file_content "$file"
+        done
+    fi
 } | tee >(copy_to_clipboard)
