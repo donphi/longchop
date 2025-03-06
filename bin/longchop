@@ -220,88 +220,72 @@ function display_file_content() {
     echo "Files with Contents:"
     echo "==================="
 
-    # Build the find command with careful attention to quoting
-    find_cmd="find . -type f \\( "
+    # Use a more direct approach to find and process files
     
-    # Add default file types
-    default_types=(
-        "*.Dockerfile" "*.tsx" "*.ts" "*.jsx" "*.js" 
-        "*.json" "*.html" "*.css" "*.scss" "*.yaml" 
-        "*.yml" "*.txt" "*.sh"
-    )
-    
-    # Join default types with -o
-    for ((i=0; i<${#default_types[@]}; i++)); do
-        find_cmd+="-name '${default_types[i]}'"
-        if ((i < ${#default_types[@]}-1)); then
-            find_cmd+=" -o "
-        fi
-    done
-    
-    # Close the initial group
-    find_cmd+=" \\)"
-
-    # Add include types if any
-    if [ ${#include_types[@]} -gt 0 ]; then
-        find_cmd+=" -o \\( "
-        for ((i=0; i<${#include_types[@]}; i++)); do
-            find_cmd+="-name '*${include_types[i]}'"
-            if ((i < ${#include_types[@]}-1)); then
-                find_cmd+=" -o "
+    # Helper function to check if a file should be included
+    should_include_file() {
+        local file="$1"
+        local filename=$(basename "$file")
+        local extension="${filename##*.}"
+        
+        # Check if file is in excluded directories
+        for excl in "node_modules" ".git" "dist" "build" ".next" "coverage" "${exclude_items[@]}"; do
+            if [[ "$file" == *"/$excl/"* || "$file" == *"/$excl" || "$file" == "./$excl" ]]; then
+                return 1  # Skip this file
             fi
         done
-        find_cmd+=" \\)"
-    fi
-
-    # Standard exclusions
-    std_exclusions=(
-        "*/node_modules/*" "*/.git/*" "*/dist/*"
-        "*/build/*" "*/.next/*" "*/coverage/*"
-    )
+        
+        # Check if file extension is in ignore list
+        for ig in "${ignore_types[@]}"; do
+            ig="${ig#.}"  # Remove leading dot if present
+            if [[ "$extension" == "$ig" ]]; then
+                return 1  # Skip this file
+            fi
+        done
+        
+        # Check if this is a default file type
+        for type in "Dockerfile" "tsx" "ts" "jsx" "js" "json" "html" "css" "scss" "yaml" "yml" "txt" "sh"; do
+            if [[ "$extension" == "$type" ]]; then
+                return 0  # Include this file
+            fi
+        done
+        
+        # Check if file extension is in include list
+        for inc in "${include_types[@]}"; do
+            inc="${inc#.}"  # Remove leading dot if present
+            if [[ "$extension" == "$inc" ]]; then
+                return 0  # Include this file
+            fi
+        done
+        
+        # Default to not including
+        return 1
+    }
     
-    for excl in "${std_exclusions[@]}"; do
-        find_cmd+=" -not -path '$excl'"
-    done
-
-    # Add custom exclusions if any
-    for item in "${exclude_items[@]}"; do
-        # Handle both filenames and directory paths - being careful with quoting
-        find_cmd+=" -not -name '$item' -not -path '*/$item' -not -path '*/$item/*'"
-    done
-
-    # Add ignore types if any
-    for ext in "${ignore_types[@]}"; do
-        find_cmd+=" -not -iname '*$ext'"
-    done
-
-    # Add maxdepth if level is specified
+    # Find all files recursively from current directory
     if [ "$level" -gt 0 ]; then
-        find_cmd+=" -maxdepth $((level + 1))"
-    fi
-
-    # Debug - uncomment if needed
-    # echo "Find command: $find_cmd"
-    
-    # Execute the find command and process results
-    file_list=$(eval "$find_cmd" 2>/dev/null)
-    
-    if [ -z "$file_list" ]; then
-        echo "No matching files found."
+        find_cmd="find . -type f -maxdepth $((level + 1))"
     else
-        echo "$file_list" | while IFS= read -r file; do
-            # Skip if file doesn't exist (might have been deleted during processing)
-            [ -f "$file" ] || continue
-            
-            dir_path=$(dirname "$file")
-            if [ "$dir_path" = "." ]; then
-                # File is in current directory
-                echo "├── $(basename "$file")"
-            else
-                # File is in subdirectory
-                echo "$dir_path" | sed 's/\.\///' | sed 's/[^/]*\//│   /g'
-                echo "├── $(basename "$file")"
-            fi
-            display_file_content "$file"
-        done
+        find_cmd="find . -type f"
     fi
+    
+    # Execute the find command
+    while IFS= read -r file; do
+        # Check if we should include this file
+        if should_include_file "$file"; then
+            if [[ -f "$file" && -r "$file" ]]; then
+                dir_path=$(dirname "$file")
+                if [ "$dir_path" = "." ]; then
+                    # File is in current directory
+                    echo "├── $(basename "$file")"
+                else
+                    # File is in subdirectory
+                    echo "$dir_path" | sed 's/\.\///' | sed 's/[^/]*\//│   /g'
+                    echo "├── $(basename "$file")"
+                fi
+                display_file_content "$file"
+            fi
+        fi
+    done < <(eval "$find_cmd")
+    
 } | tee >(copy_to_clipboard)
