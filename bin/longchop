@@ -262,7 +262,3 @@ function display_file_content() {
         display_file_content "$file"
     done
 } | tee >(copy_to_clipboard)
-EOF
-
-# Make the script executable
-chmod +x bin/longchop
