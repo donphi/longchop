@@ -215,53 +215,95 @@ function display_file_content() {
     echo "Files with Contents:"
     echo "==================="
 
-    # CRITICAL CHANGE: Build file type patterns (separated by |)
-    file_patterns="*.Dockerfile|*.tsx|*.ts|*.jsx|*.js|*.json|*.html|*.css|*.scss|*.yaml|*.yml|*.txt|*.sh"
+    # ------------------- COMPLETELY REWRITTEN FILE FINDING SECTION -------------------
     
-    # Add include types if any
-    for inc in "${include_types[@]}"; do
-        file_patterns="${file_patterns}|*${inc}"
-    done
+    # Create a temporary file to store the list of matching files
+    temp_file=$(mktemp)
     
-    # Build maxdepth parameter if level is specified
-    maxdepth_param=""
+    # Set up the find command with basic options
+    find_cmd="find . -type f"
+    
+    # Add depth limit if specified
     if [ "$level" -gt 0 ]; then
-        maxdepth_param="-maxdepth $((level + 1))"
+        find_cmd="$find_cmd -maxdepth $((level + 1))"
     fi
     
-    # Build exclusion pattern for find
-    excl_patterns=""
-    # Standard exclusions
-    excl_patterns="${excl_patterns} -not -path '*/node_modules/*' -not -path '*/.git/*'"
-    excl_patterns="${excl_patterns} -not -path '*/dist/*' -not -path '*/build/*'"
-    excl_patterns="${excl_patterns} -not -path '*/.next/*' -not -path '*/coverage/*'"
+    # Add standard exclusions
+    find_cmd="$find_cmd -not -path '*/node_modules/*' -not -path '*/.git/*'"
+    find_cmd="$find_cmd -not -path '*/dist/*' -not -path '*/build/*'"
+    find_cmd="$find_cmd -not -path '*/.next/*' -not -path '*/coverage/*'"
     
     # Add custom exclusions
     for item in "${exclude_items[@]}"; do
-        excl_patterns="${excl_patterns} -not -path '*/${item}*'"
+        find_cmd="$find_cmd -not -path '*/$item/*' -not -path '*/$item'"
     done
     
-    # Add ignore types
-    for ext in "${ignore_types[@]}"; do
-        excl_patterns="${excl_patterns} -not -name '*${ext}'"
+    # Execute the find command to get all files
+    all_files=$(eval "$find_cmd")
+    
+    # If no files found, exit early
+    if [ -z "$all_files" ]; then
+        echo "No files found."
+        rm "$temp_file"
+        exit 0
+    fi
+    
+    # Process each file to check if it matches our criteria
+    echo "$all_files" | while IFS= read -r file; do
+        # Get file extension
+        extension="${file##*.}"
+        
+        # Check if file should be ignored
+        ignore=false
+        for ig in "${ignore_types[@]}"; do
+            # Remove leading dot if present
+            ig="${ig#.}"
+            if [[ "$extension" == "$ig" ]]; then
+                ignore=true
+                break
+            fi
+        done
+        
+        # Skip ignored files
+        if $ignore; then
+            continue
+        fi
+        
+        # Check if file is a default type or user-specified include type
+        is_included=false
+        
+        # Check default types
+        for type in "Dockerfile" "tsx" "ts" "jsx" "js" "json" "html" "css" "scss" "yaml" "yml" "txt" "sh"; do
+            if [[ "$extension" == "$type" ]]; then
+                is_included=true
+                break
+            fi
+        done
+        
+        # If not a default type, check user-specified include types
+        if ! $is_included; then
+            for inc in "${include_types[@]}"; do
+                # Remove leading dot if present
+                inc="${inc#.}"
+                if [[ "$extension" == "$inc" ]]; then
+                    is_included=true
+                    break
+                fi
+            done
+        fi
+        
+        # If file should be included, add it to our temp file
+        if $is_included; then
+            echo "$file" >> "$temp_file"
+        fi
     done
     
-    # Execute the find command with -regex
-    find_command="find . ${maxdepth_param} -type f -regex '.*\\(${file_patterns}\\)' ${excl_patterns}"
-    
-    # Debug - uncomment if needed
-    # echo "Find command: $find_command"
-    
-    # Use command substitution to store the results
-    matching_files=$(eval "$find_command")
-    
-    if [ -z "$matching_files" ]; then
+    # Check if we found any matching files
+    if [ ! -s "$temp_file" ]; then
         echo "No matching files found."
     else
-        echo "$matching_files" | while IFS= read -r file; do
-            # Skip if file doesn't exist
-            [ ! -f "$file" ] && continue
-            
+        # Process each matching file
+        while IFS= read -r file; do
             # Display file name with directory structure
             dir_path=$(dirname "$file")
             if [ "$dir_path" = "." ]; then
@@ -273,6 +315,10 @@ function display_file_content() {
             
             # Display file content
             display_file_content "$file"
-        done
+        done < "$temp_file"
     fi
+    
+    # Clean up
+    rm "$temp_file"
+    
 } | tee >(copy_to_clipboard)
