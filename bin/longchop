@@ -22,12 +22,20 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     --ignore)
-      ignore_types+=("$2")
-      shift 2
+      # Allow multiple extensions in one --ignore parameter
+      shift
+      while [[ $# -gt 0 && ! $1 =~ ^-- ]]; do
+        ignore_types+=("$1")
+        shift
+      done
       ;;
     --include)
-      include_types+=("$2")
-      shift 2
+      # Allow multiple extensions in one --include parameter
+      shift
+      while [[ $# -gt 0 && ! $1 =~ ^-- ]]; do
+        include_types+=("$1")
+        shift
+      done
       ;;
     --level)
       level="$2"
@@ -54,6 +62,7 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     --exclude)
+      # Allow specifying multiple items to exclude
       shift
       while [[ $# -gt 0 && ! $1 =~ ^-- ]]; do
         exclude_items+=("$1")
@@ -74,20 +83,47 @@ done
 if [ "$show_help" = true ]; then
   echo "Usage: longchop [options]"
   echo ""
+  echo "Description:"
+  echo "  Longchop is a utility that displays file contents with line numbers and directory"
+  echo "  structure in a readable format. It's designed to help developers easily explore"
+  echo "  and share code bases."
+  echo ""
   echo "Options:"
-  echo "  --codeline X      Show only the first X lines of each file (default 500)."
-  echo "  --ignore .ext     Ignore files with the extension '.ext' in the listing."
-  echo "  --include .ext    Include additional file types beyond the default set."
-  echo "  --level X         Show file details only X levels deep from root (default 0)."
-  echo "  --tree X          Display tree structure X levels deep (overrides --level for tree display)."
-  echo "  --folder path     Specify starting folder (default: current directory)."
-  echo "  --exclude items   Exclude specific files or folders (space separated)."
-  echo "  --help, -h        Show this help message."
+  echo "  --codeline X             Show only the first X lines of each file (default 500)."
+  echo "                           This helps when dealing with very large files."
+  echo ""
+  echo "  --ignore .ext1 .ext2     Ignore files with specified extensions in the listing."
+  echo "                           You can provide multiple extensions in a single parameter."
+  echo "                           Example: --ignore .log .tmp .bak"
+  echo ""
+  echo "  --include .ext1 .ext2    Include additional file types beyond the default set."
+  echo "                           You can provide multiple extensions in a single parameter."
+  echo "                           Example: --include .md .conf .env"
+  echo ""
+  echo "  --level X                Show file details only X levels deep from root (default 0)."
+  echo "                           Level 0 means unlimited depth."
+  echo ""
+  echo "  --tree X                 Display tree structure X levels deep (overrides --level for tree display)."
+  echo "                           This allows you to see a broad structure while limiting detailed content."
+  echo ""
+  echo "  --folder path            Specify starting folder (default: current directory)."
+  echo "                           The path can be relative or absolute."
+  echo ""
+  echo "  --exclude item1 item2    Exclude specific files or folders (space separated)."
+  echo "                           You can provide paths like 'folder/subfolder' or just names."
+  echo "                           Example: --exclude node_modules tests/fixtures oldcode"
+  echo ""
+  echo "  --help, -h               Show this help message."
+  echo ""
+  echo "Default Included File Types:"
+  echo "  .Dockerfile, .tsx, .ts, .jsx, .js, .json, .html, .css, .scss, .yaml, .yml, .txt, .sh"
   echo ""
   echo "Examples:"
-  echo "  longchop --level 2                 # Show file details 2 levels deep"
-  echo "  longchop --level 2 --tree 4        # Show file details 2 levels deep, but tree structure 4 levels"
-  echo "  longchop --folder /path/to/dir     # Start from specified directory"
+  echo "  longchop --level 2                                  # Show file details 2 levels deep"
+  echo "  longchop --level 2 --tree 4                         # Show file details 2 levels deep, but tree structure 4 levels"
+  echo "  longchop --folder /path/to/dir                      # Start from specified directory"
+  echo "  longchop --include .md .conf --ignore .test.js      # Include markdown and config files, ignore test files"
+  echo "  longchop --exclude tests docs/generated assets      # Exclude multiple directories"
   exit 0
 fi
 
@@ -144,10 +180,27 @@ function display_file_content() {
         display_depth=$tree_depth
     fi
 
+    # Build exclusion string for tree command
+    tree_exclusions="node_modules|.git|dist|build|.next|coverage"
+    
+    # Add custom exclusions to tree view
+    for item in "${exclude_items[@]}"; do
+        # Escape any pipe characters in the exclusion item
+        escaped_item=$(echo "$item" | sed 's/|/\\|/g')
+        tree_exclusions="${tree_exclusions}|${escaped_item}"
+    done
+    
+    # Apply ignore_types to tree view as well
+    for ext in "${ignore_types[@]}"; do
+        # Remove leading dot if present and escape any special characters
+        clean_ext=$(echo "$ext" | sed 's/^\.//' | sed 's/|/\\|/g')
+        tree_exclusions="${tree_exclusions}|.*\.${clean_ext}$"
+    done
+
     if [ "$display_depth" -gt 0 ]; then
-        tree -L "$display_depth" -I 'node_modules|.git|dist|build|.next|coverage' --dirsfirst | tail -n +2
+        tree -L "$display_depth" -I "$tree_exclusions" --dirsfirst | tail -n +2
     else
-        tree -I 'node_modules|.git|dist|build|.next|coverage' --dirsfirst | tail -n +2
+        tree -I "$tree_exclusions" --dirsfirst | tail -n +2
     fi
 
     echo
@@ -189,16 +242,9 @@ function display_file_content() {
 
     # Add custom exclusions if any
     for item in "${exclude_items[@]}"; do
-        find_cmd+=" -not -name '$item' -not -path '*/$item/*'"
+        # Handle both filenames and directory paths
+        find_cmd+=" -not -name '$item' -not -path '*/$item' -not -path '*/$item/*'"
     done
-
-    # Add standard exclusions
-    find_cmd+=" -not -path '*/node_modules/*'"
-    find_cmd+=" -not -path '*/.git/*'"
-    find_cmd+=" -not -path '*/dist/*'"
-    find_cmd+=" -not -path '*/build/*'"
-    find_cmd+=" -not -path '*/.next/*'"
-    find_cmd+=" -not -path '*/coverage/*'"
 
     # Add ignore types if any
     for ext in "${ignore_types[@]}"; do
@@ -216,3 +262,7 @@ function display_file_content() {
         display_file_content "$file"
     done
 } | tee >(copy_to_clipboard)
+EOF
+
+# Make the script executable
+chmod +x bin/longchop
